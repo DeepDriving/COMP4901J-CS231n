@@ -73,7 +73,12 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  scores = X.dot(W)
+  num_train = X.shape[0]
+  margins = np.maximum(0, scores - scores[np.arange(scores.shape[0]), y].reshape(-1,1) + 1)
+  margins[np.arange(num_train), y] = 0
+  loss = np.sum(margins) / num_train
+  loss += reg * np.sum(W * W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -88,7 +93,18 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  X_mask = np.zeros(margins.shape)
+  X_mask[margins > 0] = 1
+  #print(X_mask)
+  #print(X_mask.shape)
+  #print(np.sum(X_mask, axis = 1))
+  #print(y.shape)
+  #print(np.array(X_mask.shape[0]))
+  #print(X_mask[np.arange(X_mask.shape[0]), y])
+  X_mask[np.arange(X_mask.shape[0]), y] = -np.sum(X_mask, axis = 1)
+  #print(X_mask)
+  dW = X.T.dot(X_mask) / num_train
+  dW += 2 * reg * W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
