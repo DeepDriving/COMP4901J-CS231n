@@ -30,7 +30,30 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  num_class = W.shape[1]
+  scores = X.dot(W)
+  for i in xrange(num_train):
+      #print(i)
+      numerator = np.exp(scores[i, y[i]])
+      denominator = np.sum(np.exp(scores[i,:]))
+      loss_i = 0.0
+      for j in xrange(num_class):
+          if j != y[i]:
+              #print(-1 * np.exp(scores[i, y[i]]) / numerator / denominator \
+                        #* (-1) * np.exp(scores[i,j]) * X[i])
+              #print(dW[:,j])
+              dW[:,j] += -1 / denominator \
+                        * (-1) * np.exp(scores[i,j]) * X[i]
+          else:
+              dW[:,j] += -1 / denominator \
+                        * X[i] * (np.sum(np.exp(scores[i, :])) - np.exp(scores[i, y[i]]))
+      loss_i = -1 * np.log(numerator/denominator)
+      loss += loss_i
+  loss /= num_train
+  loss += reg * np.sum(W * W)
+  dW /= num_train
+  dW += 2 * reg * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -54,10 +77,29 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  num_class = W.shape[1]
+  scores = X.dot(W)
+  scores_exp = np.exp(scores)
+  # denominators: (N, 1)
+  denominators = np.sum(scores_exp, axis = 1)
+  #print(denominators)
+  # numerators: (N, 1)
+  numerators = scores_exp[np.arange(num_train), y]
+  #print(numerators)
+  loss = -np.sum(np.log(numerators / denominators))
+
+  weight_matrix = -scores_exp
+  weight_matrix[np.arange(num_train), y] += np.sum(scores_exp, axis = 1)
+  weight_matrix /= - denominators.reshape(-1,1)
+  dW = X.T.dot(weight_matrix)
+
+  loss /= num_train
+  loss += reg * np.sum(W * W)
+  dW /= num_train
+  dW += 2 * reg * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
 
   return loss, dW
-
