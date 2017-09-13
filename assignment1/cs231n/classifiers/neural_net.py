@@ -76,11 +76,14 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    hidden = X.dot(W1) + b1
+    # ReLU function
+    hidden = (hidden > 0) * hidden
+    scores = hidden.dot(W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
-    
+
     # If the targets are not given then jump out, we're done
     if y is None:
       return scores
@@ -93,7 +96,12 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    scores_exp = np.exp(scores)
+    denominators = np.sum(scores_exp, axis = 1)
+    numerators = scores_exp[np.arange(N), y]
+    loss = -np.sum(np.log(numerators / denominators))
+    loss /= N
+    loss += reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -105,7 +113,11 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    grads['W1'] = np.zeros(W1.shape)
+    grads['W2'] = np.zeros(W2.shape)
+    grads['b1'] = 0
+    grads['b2'] = 0
+
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -215,5 +227,3 @@ class TwoLayerNet(object):
     ###########################################################################
 
     return y_pred
-
-
