@@ -179,7 +179,12 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      if num_train < batch_size:
+          batch_size = num_train
+      idxs = np.random.permutation(np.arange(num_train))[:batch_size]
+      X_batch = X[idxs]
+      y_batch = y[idxs]
+      #print(X_batch, y_batch)
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -194,7 +199,10 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      self.params["W1"] += - grads['W1'] * learning_rate
+      self.params["W2"] += - grads['W2'] * learning_rate
+      self.params["b1"] += - grads['b1'] * learning_rate
+      self.params["b2"] += - grads['b2'] * learning_rate
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -239,7 +247,13 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    W1, b1 = self.params['W1'], self.params['b1']
+    W2, b2 = self.params['W2'], self.params['b2']
+    hidden = X.dot(W1) + b1
+    # ReLU function
+    hidden = (hidden > 0) * hidden
+    scores = hidden.dot(W2) + b2
+    y_pred = scores.argmax(axis = 1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
