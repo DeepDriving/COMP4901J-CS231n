@@ -113,11 +113,29 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    grads['W1'] = np.zeros(W1.shape)
-    grads['W2'] = np.zeros(W2.shape)
-    grads['b1'] = 0
-    grads['b2'] = 0
+    #grads['W1'] = np.zeros(W1.shape)
+    #grads['W2'] = np.zeros(W2.shape) (H, C)
+    #grads['b1'] = np.zeros(H)
+    #grads['b2'] = np.zeros(C)
+    C = W2.shape[1]
+    beta = (X.dot(W1) + b1).T   # (H, N)
+    h = ((beta > 0) * beta)     # (H, N)
+    alpha = (h.T.dot(W2) + b2).T  # (C, N)
+    softmax = lambda x: np.exp(x) / np.sum(np.exp(x), axis = 0)
+    y_matrix = np.zeros((C, N))
+    y_matrix[y, np.arange(N)] = 1 # (C, N)
+    d_alpha = softmax(alpha) - y_matrix # (C, N)
+    dW2 = d_alpha.dot(h.T) # (C, H)
+    db2 = np.sum(d_alpha, axis = 1) # (C,)
+    dh = W2.dot(d_alpha) # (H, N)
+    d_beta = dh * (beta > 0) # (H, N)
+    dW1 = d_beta.dot(X) # (H, D)
+    db1 = np.sum(d_beta, axis = 1) # (H,)
 
+    grads['W2'] = dW2.T / N + 2 * reg * W2
+    grads['b2'] = db2 / N
+    grads['W1'] = dW1.T / N + 2 * reg * W1
+    grads['b1'] = db1 / N
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
