@@ -192,6 +192,10 @@ class FullyConnectedNet(object):
 
             self.params['W'+str(i+1)] = weight_scale * np.random.randn(dim_i, dim_o)
             self.params['b'+str(i+1)] = np.zeros(dim_o)
+
+            if i != self.num_layers - 1 and self.use_batchnorm:
+                self.params['gamma'+str(i+1)] = np.ones(dim_o)
+                self.params['beta'+str(i+1)] = np.zeros(dim_o)
         #for k,v in self.params.items():
         #    print(k, v.shape)
         ############################################################################
@@ -253,13 +257,23 @@ class FullyConnectedNet(object):
         ############################################################################
         affine_cache = []
         relu_cache = []
+        if self.use_batchnorm:
+            bn_cache = []
+
         layer_mid = X
         for i in range(self.num_layers):
             W = self.params['W' + str(i+1)]
             b = self.params['b' + str(i+1)]
             layer_mid, ac = affine_forward(layer_mid, W, b)
             affine_cache.append(ac)
+
             if i < self.num_layers - 1:
+                if self.use_batchnorm:
+                    layer_mid, bnc = batchnorm_forward(layer_mid,\
+                                                       self.params['gamma'+str(i+1)],\
+                                                       self.params['beta'+str(i+1)],\
+                                                       self.bn_params[i])
+                    bn_cache.append(bnc)
                 layer_mid, rc = relu_forward(layer_mid)
                 relu_cache.append(rc)
         scores = layer_mid
@@ -292,11 +306,17 @@ class FullyConnectedNet(object):
             else:
                 rc = relu_cache[i]
                 dX = relu_backward(dX, rc)
+                if self.use_batchnorm:
+                    bnc = bn_cache[i]
+                    dX, dgamma, dbeta = batchnorm_backward(dX, bnc)
+                    grads['gamma'+str(i+1)] = dgamma
+                    grads['beta'+str(i+1)] = dbeta
             ac = affine_cache[i]
             dX, dW, db = affine_backward(dX, ac)
 
             grads['W' + str(i+1)] = dW + self.reg * self.params['W' + str(i+1)]
             grads['b' + str(i+1)] = db
+
             loss += 0.5 * self.reg * np.sum(self.params['W' + str(i+1)] ** 2)
 
         ############################################################################
