@@ -259,6 +259,8 @@ class FullyConnectedNet(object):
         relu_cache = []
         if self.use_batchnorm:
             bn_cache = []
+        if self.use_dropout:
+            do_cache = []
 
         layer_mid = X
         for i in range(self.num_layers):
@@ -276,6 +278,9 @@ class FullyConnectedNet(object):
                     bn_cache.append(bnc)
                 layer_mid, rc = relu_forward(layer_mid)
                 relu_cache.append(rc)
+                if self.use_dropout:
+                    layer_mid, doc = dropout_forward(layer_mid, self.dropout_param)
+                    do_cache.append(doc)
         scores = layer_mid
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -304,6 +309,9 @@ class FullyConnectedNet(object):
             if i == self.num_layers - 1:
                 dX = dscores
             else:
+                if self.use_dropout:
+                    doc = do_cache[i]
+                    dX = dropout_backward(dX, doc)
                 rc = relu_cache[i]
                 dX = relu_backward(dX, rc)
                 if self.use_batchnorm:
