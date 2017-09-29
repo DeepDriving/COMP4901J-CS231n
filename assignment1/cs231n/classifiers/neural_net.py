@@ -40,6 +40,7 @@ class TwoLayerNet(object):
     self.params['b1'] = np.zeros(hidden_size)
     self.params['W2'] = std * np.random.randn(hidden_size, output_size)
     self.params['b2'] = np.zeros(output_size)
+    self.dropout_param = 1 # The percentage of the cell kept
 
   def loss(self, X, y=None, reg=0.0):
     """
@@ -79,6 +80,9 @@ class TwoLayerNet(object):
     hidden = X.dot(W1) + b1
     # ReLU function
     hidden = (hidden > 0) * hidden
+    if self.dropout_param < 1:
+        mask = (np.random.rand(*hidden.shape) < self.dropout_param) / self.dropout_param
+        hidden = hidden * mask
     scores = hidden.dot(W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -128,6 +132,8 @@ class TwoLayerNet(object):
     dW2 = d_alpha.dot(h.T) # (C, H)
     db2 = np.sum(d_alpha, axis = 1) # (C,)
     dh = W2.dot(d_alpha) # (H, N)
+    if self.dropout_param < 1:
+        dh = dh * mask.T
     d_beta = dh * (beta > 0) # (H, N)
     dW1 = d_beta.dot(X) # (H, D)
     db1 = np.sum(d_beta, axis = 1) # (H,)
@@ -145,7 +151,8 @@ class TwoLayerNet(object):
   def train(self, X, y, X_val, y_val,
             learning_rate=1e-3, learning_rate_decay=0.95,
             reg=5e-6, num_iters=100,
-            batch_size=200, verbose=False):
+            batch_size=200, verbose=False,
+            dropout_param=1, momentum = 0.0):
     """
     Train this neural network using stochastic gradient descent.
 
@@ -170,6 +177,16 @@ class TwoLayerNet(object):
     loss_history = []
     train_acc_history = []
     val_acc_history = []
+
+    # store dropout parameter
+    self.dropout_param = dropout_param
+
+    # setup velocity to 0
+    self.velocity = {}
+    self.velocity["W1"] = np.zeros_like(self.params["W1"])
+    self.velocity["W2"] = np.zeros_like(self.params["W2"])
+    self.velocity["b1"] = np.zeros_like(self.params["b1"])
+    self.velocity["b2"] = np.zeros_like(self.params["b2"])
 
     for it in xrange(num_iters):
       X_batch = None
@@ -199,10 +216,20 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      self.params["W1"] += - grads['W1'] * learning_rate
-      self.params["W2"] += - grads['W2'] * learning_rate
-      self.params["b1"] += - grads['b1'] * learning_rate
-      self.params["b2"] += - grads['b2'] * learning_rate
+      if momentum != 0.0:
+          self.velocity['W1'] = self.velocity["W1"] * momentum - grads['W1'] * learning_rate
+          self.velocity['W2'] = self.velocity["W2"] * momentum - grads['W2'] * learning_rate
+          self.velocity['b1'] = self.velocity["b1"] * momentum - grads['b1'] * learning_rate
+          self.velocity['b2'] = self.velocity["b2"] * momentum - grads['b2'] * learning_rate
+          self.params["W1"] += self.velocity['W1']
+          self.params["W2"] += self.velocity['W2']
+          self.params["b1"] += self.velocity['b1']
+          self.params["b2"] += self.velocity['b2']
+      else:
+          self.params["W1"] += - grads['W1'] * learning_rate
+          self.params["W2"] += - grads['W2'] * learning_rate
+          self.params["b1"] += - grads['b1'] * learning_rate
+          self.params["b2"] += - grads['b2'] * learning_rate
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
