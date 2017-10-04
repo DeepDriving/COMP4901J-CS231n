@@ -435,6 +435,7 @@ def conv_forward_naive(x, w, b, conv_param):
             for hh in range(output_H):
                 for ww in range(output_W):
                     out[n,f,hh,ww] = np.sum(padded_x[n, :, hh*stride:hh*stride+HH, ww*stride:ww*stride+WW] * w[f]) + b[f]
+    # out: (N, F, H', W')
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -459,7 +460,31 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    output_H = 1 + (W + 2 * pad - WW) / stride
+    output_W = 1 + (H + 2 * pad - HH) / stride
+    assert output_H.is_integer()
+    assert output_W.is_integer()
+    output_H = int(output_H)
+    output_W = int(output_W)
+    padded_dx = np.zeros((N, C, H + 2 * pad, W + 2 * pad))
+    padded_x = np.lib.pad(x, ((0,0), (0,0), (pad, pad), (pad, pad)), 'constant', constant_values=0)
+    dw = np.zeros((F, C, HH, WW))
+    db = np.zeros(F)
+    # out: (N, F, H', W')
+    for n in range(N):
+        for f in range(F):
+            for hh in range(output_H):
+                for ww in range(output_W):
+                    padded_dx[n, :, hh*stride:hh*stride+HH, ww*stride:ww*stride+WW] += dout[n, f, hh, ww] * w[f]
+                    dw[f] += dout[n, f, hh, ww] * padded_x[n, :, hh*stride:hh*stride+HH, ww*stride:ww*stride+WW]
+                    db[f] += dout[n, f, hh, ww]
+    print(padded_dx.shape)
+    dx = padded_dx[:, :, pad:pad+H, pad:pad+W]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -478,14 +503,28 @@ def max_pool_forward_naive(x, pool_param):
       - 'stride': The distance between adjacent pooling regions
 
     Returns a tuple of:
-    - out: Output data
+    - out: Output data (N, C, output_H, output_W)
     - cache: (x, pool_param)
     """
     out = None
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    N, C, H, W = x.shape
+    HH = pool_param['pool_height']
+    WW = pool_param['pool_width']
+    stride = pool_param['stride']
+    output_H = 1 + (H - HH) / stride
+    output_W = 1 + (W - WW) / stride
+    assert output_H.is_integer()
+    assert output_W.is_integer()
+    output_H = int(output_H)
+    output_W = int(output_W)
+    out = np.zeros((N, C, output_H, output_W))
+    for n in range(N):
+        for hh in range(output_H):
+            for ww in range(output_W):
+                out[n, :, hh, ww] = np.max(x[n, :, hh * stride: hh*stride + HH, ww*stride: ww*stride + WW], axis = (1,2))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -508,7 +547,33 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    x, pool_param = cache
+    N, C, H, W = x.shape
+    HH = pool_param['pool_height']
+    WW = pool_param['pool_width']
+    stride = pool_param['stride']
+    output_H = 1 + (H - HH) / stride
+    output_W = 1 + (W - WW) / stride
+    assert output_H.is_integer()
+    assert output_W.is_integer()
+    output_H = int(output_H)
+    output_W = int(output_W)
+    dx = np.zeros(x.shape)
+
+    for n in range(N):
+        for hh in range(output_H):
+            for ww in range(output_W):
+                #shape = x[n, :, hh * stride: hh*stride + HH, ww*stride: ww*stride + WW].shape
+                #index = np.argmax(x[n, :, hh * stride: hh*stride + HH, ww*stride: ww*stride + WW].reshape(C, -1), axis = 1)
+                #index = np.array(np.unravel_index(index, shape))
+                #index[0] = np.arange(index[0].shape[0])
+                #dx[n, index[0], index[1], index[2]] += dout[n, :, hh, ww]
+                block = x[n, :, hh * stride: hh*stride + HH, ww*stride: ww*stride + WW]
+                shape = block.shape
+                block_max = np.max(block, axis=(1,2), keepdims=True)
+                #print(block)
+                #print((block == block_max) * dout[n, :, hh, ww])
+                dx[n, :, hh * stride: hh*stride + HH, ww*stride: ww*stride + WW] += (block == block_max) * dout[n, :, hh, ww]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
