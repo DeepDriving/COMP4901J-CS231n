@@ -483,7 +483,7 @@ def conv_backward_naive(dout, cache):
                     padded_dx[n, :, hh*stride:hh*stride+HH, ww*stride:ww*stride+WW] += dout[n, f, hh, ww] * w[f]
                     dw[f] += dout[n, f, hh, ww] * padded_x[n, :, hh*stride:hh*stride+HH, ww*stride:ww*stride+WW]
                     db[f] += dout[n, f, hh, ww]
-    print(padded_dx.shape)
+    #print(padded_dx.shape)
     dx = padded_dx[:, :, pad:pad+H, pad:pad+W]
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -572,8 +572,9 @@ def max_pool_backward_naive(dout, cache):
                 shape = block.shape
                 block_max = np.max(block, axis=(1,2), keepdims=True)
                 #print(block)
-                #print((block == block_max) * dout[n, :, hh, ww])
-                dx[n, :, hh * stride: hh*stride + HH, ww*stride: ww*stride + WW] += (block == block_max) * dout[n, :, hh, ww]
+                #print((block == block_max).shape)
+                #print(dout[n, :, hh, ww].shape)
+                dx[n, :, hh * stride: hh*stride + HH, ww*stride: ww*stride + WW] += (block == block_max) * (dout[n, :, hh, ww])[:, None, None]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -595,8 +596,8 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
         old information is discarded completely at every time step, while
         momentum=1 means that new information is never incorporated. The
         default of momentum=0.9 should work well in most situations.
-      - running_mean: Array of shape (D,) giving running mean of features
-      - running_var Array of shape (D,) giving running variance of features
+      - running_mean: Array of shape (C,) giving running mean of features
+      - running_var Array of shape (C,) giving running variance of features
 
     Returns a tuple of:
     - out: Output data, of shape (N, C, H, W)
@@ -611,7 +612,9 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, H, W = x.shape
+    out, cache = batchnorm_forward(x.transpose(0,3,2,1).reshape(-1, C), gamma, beta, bn_param)
+    out = out.reshape(N, W, H, C).transpose(0,3,2,1)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -641,7 +644,9 @@ def spatial_batchnorm_backward(dout, cache):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, H, W = dout.shape
+    dx, dgamma, dbeta = batchnorm_backward_alt(dout.transpose(0,3,2,1).reshape(-1, C), cache)
+    dx = dx.reshape(N,W,H,C).transpose(0,3,2,1)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
