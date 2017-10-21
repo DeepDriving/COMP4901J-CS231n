@@ -304,8 +304,9 @@ def batchnorm_backward_alt(dout, cache):
     dgamma = np.sum(dout * xhat, axis=0) # (D, )
     dbeta = np.sum(dout, axis=0) #(D, )
     dx = dout * gamma * invstd - \
-         np.sum(dout * xhat, axis = 0) * gamma * (invstd ** 2) * (xmean) / N - \
-         np.sum(dout, axis = 0) * gamma * invstd / N
+          dgamma * gamma * (invstd ** 2) * (xmean) / N - \
+          dbeta * gamma * invstd / N
+    #dx = (dout - (dgamma * invstd * xmean - dbeta) / N) * gamma * invstd 
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -344,7 +345,7 @@ def dropout_forward(x, dropout_param):
         # TODO: Implement training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
-        mask = (np.random.rand(*x.shape) < p) / p
+        mask = (np.random.rand(*x.shape) > p) / p
         out = x * mask
         cache = (dropout_param, mask)
         #######################################################################
