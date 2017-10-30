@@ -77,6 +77,7 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
+  '''
   num_train = X.shape[0]
   num_class = W.shape[1]
   scores = X.dot(W)
@@ -98,6 +99,45 @@ def softmax_loss_vectorized(W, X, y, reg):
   loss += reg * np.sum(W * W)
   dW /= num_train
   dW += 2 * reg * W
+  '''
+  # using backpropagation
+  # forward
+  N = X.shape[0]
+  C = W.shape[1]
+  scores = X.dot(W)
+  exps = np.exp(scores)
+  den = np.sum(exps, axis = 1).reshape(-1,1)
+  num = exps[np.arange(N), y].reshape(-1,1)
+  invden = 1 / den
+  frac = num * invden
+  li = -np.log(frac)
+  loss = np.sum(li) / N
+
+  #backward
+
+  dout = 1
+  #loss = np.sum(li) / N
+  dli = np.ones((N,1))*dout/N
+  #li = -np.log(frac)
+  dfrac = -1 / frac * dli
+  #frac = num * invden
+  dnum = invden * dfrac
+  dinvden = num * dfrac
+  #invden = 1 / den
+  dden = -1 / (den ** 2)* dinvden
+  #num = exps[np.arange(N), y].reshape(-1,1)
+  dexps = np.zeros((N,C))
+  dexps[np.arange(N), y] = dnum.reshape(1,-1)
+  #den = np.sum(exps, axis = 1).reshape(-1,1)
+  dexps += np.dot(dden, np.ones((1, C)))
+  #exps = np.exp(scores)
+  ds = np.exp(scores) * dexps
+
+  #following up
+  loss += reg * np.sum(W*W)
+  dW = X.T.dot(ds)
+  dW += 2 * reg * W
+
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
